@@ -48,7 +48,7 @@ export default function ReportsOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
           label="Admins / Teachers"
           value={`${summary.totalAdmins} / ${summary.totalTeachers}`}
@@ -84,7 +84,7 @@ export default function ReportsOverview() {
       <div className="card p-5 sm:p-6">
         <p className="eyebrow">Report areas</p>
         <h3 className="mt-1 font-display text-lg font-semibold text-ink-900">Platform health at a glance</h3>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[
             [BookOpenIcon, "Course delivery", "Published courses and enrollment activity"],
             [BarChartIcon, "Learning progress", "Lecture completion and task performance"],
@@ -93,13 +93,13 @@ export default function ReportsOverview() {
           ].map(([Icon, title, body]) => (
             <div
               key={title}
-              className="group rounded-xl border border-ink-100 bg-ink-50/50 p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-brass-200 hover:bg-brass-50 hover:shadow-card"
+              className="group min-w-0 rounded-xl border border-ink-100 bg-ink-50/50 p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-brass-200 hover:bg-brass-50 hover:shadow-card"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brass-600 shadow-sm transition group-hover:bg-brass-500 group-hover:text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brass-600 shadow-sm transition group-hover:bg-brass-500 group-hover:text-white">
                 <Icon className="h-4.5 w-4.5" />
               </span>
-              <p className="mt-3 text-sm font-semibold text-ink-900">{title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-ink-500">{body}</p>
+              <p className="mt-3 break-words text-sm font-semibold text-ink-900">{title}</p>
+              <p className="mt-1 break-words text-xs leading-relaxed text-ink-500">{body}</p>
             </div>
           ))}
         </div>
