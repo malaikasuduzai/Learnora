@@ -1,0 +1,510 @@
+// Day 2: Authentication (User). Day 3: course & teacher management
+// (Course, CourseCategory, Enrollment). Day 4: course content (Module,
+// Lecture, LectureResource, LectureProgress). Day 5/6: tasks & evaluation
+// (Task, TaskAssignment, TaskSubmission). Day 7: attendance (Attendance,
+// plus the attendanceWindowStart/End/lateAllowed fields on Course). Day 8:
+// notifications, course announcements and student <-> teacher messaging
+// (Notification, Announcement, Message).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id              String               @id @default(cuid())
+  name            String
+  email           String               @unique
+  password        String
+  phone           String?
+  bio             String?              @db.Text
+  role            Role                 @default(STUDENT)
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  resetCodes      PasswordResetCode[]
+  coursesTaught   Course[]             @relation("CourseTeacher")
+  enrollments     Enrollment[]         @relation("StudentEnrollments")
+  lectureProgress LectureProgress[]    @relation("StudentLectureProgress")
+  taskAssignments TaskAssignment[]     @relation("StudentTaskAssignments")
+  taskSubmissions TaskSubmission[]     @relation("StudentTaskSubmissions")
+  attendance      Attendance[]         @relation("StudentAttendance")
+  notifications   Notification[]       @relation("UserNotifications")
+  announcements   Announcement[]       @relation("TeacherAnnouncements")
+  sentMessages    Message[]            @relation("SentMessages")
+  receivedMessages Message[]           @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+// Powers "Forgot password" — a short-lived code sent by email or SMS that
+// the user exchanges for permission to set a new password. Only the hash
+// of the code is stored, the same way passwords are hashed.
+model PasswordResetCode {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  method    ResetMethod   @default(EMAIL)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+  @@map("password_reset_codes")
+}
+
+enum ResetMethod {
+  EMAIL
+  SMS
+}
+
+// ---- Course management (Day 3 slice: creation, categories, details) ------
+
+model CourseCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  description String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  courses   Course[]
+
+  @@map("course_categories")
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Course {
+  id            String         @id @default(cuid())
+  title         String
+  description   String         @db.Text
+  thumbnail     String?
+  categoryId    String?
+  category      CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  duration      String
+  level         CourseLevel    @default(BEGINNER)
+  objectives    String?        @db.Text
+  requirements  String?        @db.Text
+  status        CourseStatus   @default(DRAFT)
+  teacherId     String?
+  teacher       User?          @relation("CourseTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  startDate     DateTime?
+  endDate       DateTime?
+  // Day 7 — daily attendance window for this course ("Attendance Window
+  // Start: 09:00 AM, End: 12:00 PM", PRD section 19). Stored as plain
+  // "HH:mm" strings rather than DateTime since the window recurs every day
+  // rather than pointing at one instant — see lib/attendanceDisplay.js for
+  // the comparison logic. Null until an Admin/Teacher configures it, which
+  // keeps attendance marking closed for a course by default.
+  attendanceWindowStart String?
+  attendanceWindowEnd   String?
+  lateAllowed           Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  enrollments   Enrollment[]
+  modules       Module[]
+  tasks         Task[]
+  attendance    Attendance[]
+  attendanceSessions AttendanceSession[]
+  announcements Announcement[]
+  messages      Message[]
+
+  @@index([categoryId])
+  @@index([teacherId])
+  @@map("courses")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// A student enrolled in a course — created either by an Admin manually
+// enrolling them ("The Admin should also be able to manually enroll a
+// student into a course", PRD section 10) or by the student themself via
+// the "Browse Course -> View Course Details -> Enroll" self-service flow
+// (same section) at POST /api/student/courses/:id/enroll. Same row shape
+// either way; nothing on Enrollment records which actor created it.
+model Enrollment {
+  id         String           @id @default(cuid())
+  studentId  String
+  student    User             @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status     EnrollmentStatus @default(ACTIVE)
+  enrolledAt DateTime         @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+  @@index([studentId])
+  @@map("enrollments")
+}
+
+// ---- Course content (Day 4 slice: modules, lectures, resources, progress) -
+// A teacher organizes an assigned course into Modules, each holding an
+// ordered list of Lectures ("Module 01 -> Lecture 01, Lecture 02...", PRD
+// section 8). Each lecture can carry a video, notes and any number of
+// downloadable resources. A student "completes" a lecture by creating a
+// LectureProgress row for it; course/lecture progress percentages are
+// derived from that at read time rather than stored, so they can never go
+// out of sync with the underlying data.
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lectures Lecture[]
+
+  @@index([courseId])
+  @@map("modules")
+}
+
+model Lecture {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  videoUrl    String?
+  notes       String?  @db.Text
+  duration    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  resources LectureResource[]
+  progress  LectureProgress[]
+
+  @@index([moduleId])
+  @@map("lectures")
+}
+
+enum ResourceType {
+  PDF
+  LINK
+  FILE
+}
+
+model LectureResource {
+  id        String       @id @default(cuid())
+  lectureId String
+  lecture   Lecture      @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  title     String
+  url       String
+  type      ResourceType @default(LINK)
+  createdAt DateTime     @default(now())
+
+  @@index([lectureId])
+  @@map("lecture_resources")
+}
+
+// A student marking a lecture as watched/completed. Powers "Lecture
+// Completion" (PRD section 25) and "Student Progress Tracking" (section 24):
+// Course Progress % = completed lectures / total lectures for that course.
+model LectureProgress {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation("StudentLectureProgress", fields: [studentId], references: [id], onDelete: Cascade)
+  lectureId   String
+  lecture     Lecture  @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([studentId, lectureId])
+  @@index([lectureId])
+  @@index([studentId])
+  @@map("lecture_progress")
+}
+
+// ---- Tasks & assignments (Day 5 slice: create task, assign to students, ---
+// student task dashboard, file submission, submission status) -------------
+// A teacher creates a Task on one of their own courses and picks which
+// enrolled students it applies to ("Assigned Students", PRD section 14) —
+// that's the TaskAssignment join. "Pending" and "Overdue" (PRD section 15)
+// are never stored: they're derived at read time from whether a
+// TaskSubmission exists yet and whether `deadline` has passed, the same way
+// lecture/course progress is computed rather than stored in the Day 4
+// slice. Marks, feedback and the approve/reject step (PRD section 17) are
+// written by the Day 6 — Evaluation System — slice, via
+// PATCH /api/teacher/submissions/:id; no migration was needed for that
+// phase since these fields already existed on TaskSubmission below.
+
+enum TaskStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Task {
+  id            String     @id @default(cuid())
+  courseId      String
+  course        Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title         String
+  description   String     @db.Text
+  instructions  String?    @db.Text
+  startDate     DateTime?
+  deadline      DateTime
+  maxMarks      Int        @default(100)
+  attachmentUrl String?
+  status        TaskStatus @default(PUBLISHED)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  assignments TaskAssignment[]
+  submissions TaskSubmission[]
+
+  @@index([courseId])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User     @relation("StudentTaskAssignments", fields: [studentId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@unique([taskId, studentId])
+  @@index([taskId])
+  @@index([studentId])
+  @@map("task_assignments")
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  COMPLETED
+  REJECTED
+}
+
+// A student's submission for a task (PRD section 16). fileUrl / textAnswer
+// / link are each optional so a student can mix and match submission
+// types, but at least one is required (enforced in taskSubmissionSchema).
+// One row per (task, student) — resubmitting updates the same row rather
+// than creating a new one, and bumps submittedAt. `status`, `marks` and
+// `feedback` are then driven by the Day 6 evaluation flow ("Teacher Task
+// Evaluation", PRD section 17): a teacher moves the row through
+// Under Review -> Completed/Rejected and can revise marks or feedback at
+// any time via PATCH /api/teacher/submissions/:id.
+model TaskSubmission {
+  id          String           @id @default(cuid())
+  taskId      String
+  task        Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User             @relation("StudentTaskSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  fileUrl     String?
+  textAnswer  String?          @db.Text
+  link        String?
+  notes       String?          @db.Text
+  status      SubmissionStatus @default(SUBMITTED)
+  marks       Int?
+  feedback    String?          @db.Text
+  submittedAt DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([taskId, studentId])
+  @@index([taskId])
+  @@index([studentId])
+  @@map("task_submissions")
+}
+
+// ---- Attendance (Day 7 slice) ----------------------------------------------
+// One row per (course, student, calendar date). A student creates their own
+// row by self-marking inside the course's attendance window (PRD section
+// 20, always PRESENT — the window check is what stands in for "Late"/
+// "Absent" there). A teacher can also take attendance for their course on
+// any date (PRD section 22/23), which is the only way ABSENT or LATE ever
+// get written, since a student is never allowed to mark either of those for
+// themselves. `markedBy` records which of those two flows produced the row,
+// so the UI can show "You marked this" vs "Marked by your teacher".
+// Attendance percentage (PRD sections 21/24) is derived at read time as
+// (PRESENT + LATE) / total rows for that student in that course, the same
+// derive-don't-store approach as course/lecture progress in the Day 4 slice.
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum AttendanceMarkedBy {
+  STUDENT
+  TEACHER
+}
+
+model Attendance {
+  id        String              @id @default(cuid())
+  courseId  String
+  course    Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User                @relation("StudentAttendance", fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime            @db.Date
+  status    AttendanceStatus    @default(PRESENT)
+  markedBy  AttendanceMarkedBy  @default(STUDENT)
+  markedAt  DateTime            @default(now())
+  // Set by an Admin/Super Admin to grant one correction past the normal
+  // edit window (see ATTENDANCE_EDIT_WINDOW_DAYS in attendanceDisplay.js).
+  // Consumed (reset to null) the moment the teacher successfully edits the
+  // record, so every out-of-window change requires a fresh admin grant.
+  adminUnlockedAt DateTime?
+
+  @@unique([courseId, studentId, date])
+  @@index([courseId])
+  @@index([studentId])
+  @@map("attendance")
+}
+
+// A student self-marking PRESENT is otherwise just an honest-effort click
+// within the window, with nothing checking they were actually in class.
+// AttendanceSession is a short-lived code the teacher displays/announces
+// live; a student must enter the current code to self-mark, so someone who
+// isn't in the room (physically or on the call) has no way to get it. One
+// active code per course per day — generating a new one immediately
+// invalidates the previous one, so a code that leaks into a group chat
+// after class stops working the moment the teacher rotates it.
+model AttendanceSession {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, date])
+  @@map("attendance_sessions")
+}
+
+// ---- Notifications, announcements & messaging (Day 8 slice) --------------
+// Notification is role-agnostic — any user (Super Admin, Admin, Teacher or
+// Student) can receive one, so it hangs off User directly rather than a
+// role-specific table (PRD section 28: separate Student/Teacher examples,
+// same underlying mechanism). Announcement is a teacher broadcasting to
+// everyone enrolled in one of their own courses (PRD section 29); Message
+// is a private one-to-one thread scoped to a single course, between that
+// course's teacher and one enrolled student (PRD section 30 — "Students
+// should be able to communicate with their assigned teacher").
+
+enum NotificationType {
+  ENROLLMENT
+  LECTURE_ADDED
+  TASK_ASSIGNED
+  TASK_SUBMITTED
+  TASK_EVALUATED
+  ANNOUNCEMENT
+  MESSAGE
+  ATTENDANCE_REMINDER
+  CONTACT_MESSAGE
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?          @db.Text
+  // Where clicking the notification should take the user — a relative
+  // in-app path (e.g. "/student/tasks/abc123"), not stored as a foreign key
+  // since it can point at different kinds of records depending on `type`.
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   User     @relation("TeacherAnnouncements", fields: [teacherId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@map("announcements")
+}
+
+// One row per message. A "conversation" isn't its own model — it's simply
+// every Message that shares a (courseId, the two participant ids) pair,
+// the same derive-don't-store approach used for progress/attendance %
+// elsewhere in this build. `readAt` powers the unread badge in each
+// conversation list.
+model Message {
+  id         String    @id @default(cuid())
+  courseId   String
+  course     Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  body       String    @db.Text
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  // Edit/delete (PRD section 30 messaging). editedAt is stamped whenever
+  // the sender changes the body; deletedAt marks a soft delete — the row
+  // is kept so the thread doesn't leave a gap, but the body is cleared and
+  // the UI renders a "message deleted" placeholder instead of the content.
+  editedAt   DateTime?
+  deletedAt  DateTime?
+
+  @@index([courseId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("messages")
+}
+
+// A submission from the public landing-page contact form (no auth — a
+// visitor may not have an account at all). Deliberately not tied to a
+// User row via foreign key, unlike Message above: sender/senderEmail are
+// just the values they typed, since there is no account to link to.
+// readAt tracks unread/read the same way Notification does; an Admin can
+// reply from their own inbox via mailto, so no outbound-email sending is
+// modelled here.
+model ContactMessage {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  body      String    @db.Text
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([readAt])
+  @@map("contact_messages")
+}

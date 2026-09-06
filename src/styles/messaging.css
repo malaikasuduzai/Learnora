@@ -1,0 +1,441 @@
+/* Enhanced Messaging Styles for Learnora */
+
+/* Conversation List Styling */
+.conversation-list {
+  @apply flex-col overflow-y-auto border-ink-100 lg:flex lg:border-r bg-white scrollbar-thin;
+}
+
+.conversation-item {
+  @apply w-full border-b border-slate-100 px-3 py-2.5 text-left transition-all duration-200 hover:bg-blue-50;
+}
+
+.conversation-item.active {
+  @apply bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500;
+}
+
+.conversation-item:hover {
+  @apply border-slate-200;
+}
+
+.unread-badge {
+  @apply flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white;
+}
+
+/* Message Thread Styling */
+.message-thread-container {
+  @apply card grid h-[34rem] overflow-hidden lg:grid-cols-[280px_1fr] bg-gradient-to-br from-white via-slate-50 to-slate-100;
+}
+
+.thread-header {
+  @apply flex items-center justify-between gap-2 border-b border-slate-200 bg-gradient-to-r from-white to-slate-50 px-4 py-3 shadow-sm;
+}
+
+.thread-header-info {
+  @apply flex items-center gap-2.5 min-w-0 flex-1;
+}
+
+.thread-messages-container {
+  @apply min-h-0 flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 space-y-3;
+}
+
+/* Message Bubble Styling */
+.message-bubble {
+  @apply max-w-[80%] rounded-3xl px-4 py-2.5 text-sm shadow-sm transition-all duration-200;
+}
+
+.message-bubble.mine {
+  @apply bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md;
+}
+
+.message-bubble.theirs {
+  @apply border-2 border-slate-200 bg-white text-slate-900 hover:border-slate-300;
+}
+
+.message-bubble.highlighted {
+  @apply ring-2 ring-yellow-400 ring-offset-2;
+}
+
+.message-bubble.highlighted.scale {
+  @apply scale-105 origin-center;
+}
+
+.message-timestamp {
+  @apply mt-2 flex flex-wrap items-center gap-2 text-[11px] font-medium;
+}
+
+.message-timestamp.mine {
+  @apply text-white/70;
+}
+
+.message-timestamp.theirs {
+  @apply text-slate-500;
+}
+
+.message-edit-time {
+  @apply flex items-center gap-1;
+}
+
+.message-edit-time:hover {
+  @apply cursor-help;
+}
+
+/* Delete Confirmation Styling */
+.message-delete-confirm {
+  @apply mt-2.5 flex flex-wrap items-center gap-2 rounded-lg p-2.5 text-xs font-medium;
+}
+
+.message-delete-confirm.mine {
+  @apply bg-white/10;
+}
+
+.message-delete-confirm.theirs {
+  @apply bg-slate-100;
+}
+
+/* Notification Settings Panel */
+.notification-settings-panel {
+  @apply border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4 shadow-sm;
+}
+
+.notification-settings-content {
+  @apply max-w-2xl mx-auto;
+}
+
+.notification-setting-item {
+  @apply flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors;
+}
+
+.notification-setting-item.enabled {
+  @apply border-l-2 border-blue-200;
+}
+
+.notification-toggle {
+  @apply relative inline-flex items-center h-6 w-11 rounded-full transition-colors;
+}
+
+.notification-toggle.on {
+  @apply bg-blue-600;
+}
+
+.notification-toggle.off {
+  @apply bg-slate-300;
+}
+
+.notification-toggle-thumb {
+  @apply inline-block h-4 w-4 transform rounded-full bg-white transition-transform;
+}
+
+.notification-toggle-thumb.on {
+  @apply translate-x-6;
+}
+
+.notification-toggle-thumb.off {
+  @apply translate-x-1;
+}
+
+/* Search Bar Styling */
+.message-search-bar {
+  @apply border-b border-slate-200 bg-white px-4 py-2;
+}
+
+.message-search-input {
+  @apply field-input pl-9 text-xs py-1.5 border-slate-200 focus:border-blue-400 focus:ring-blue-100;
+}
+
+/* Message Input Form */
+.message-input-form {
+  @apply flex items-end gap-3 border-t border-slate-200 bg-white p-4;
+}
+
+.message-send-button {
+  @apply btn-primary w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Scrollbar Styling for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203, 213, 225) transparent;
+}
+
+/* Scrollbar Styling for WebKit browsers (Chrome, Safari, Edge) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(203, 213, 225);
+  border-radius: 3px;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+/* Removed Messages */
+.message-deleted {
+  @apply max-w-[80%] rounded-2xl border-2 border-dashed border-slate-200 px-3.5 py-2 text-sm italic text-slate-400;
+}
+
+/* Message Group Spacing */
+.message-group {
+  @apply space-y-3;
+}
+
+.message-group-date {
+  @apply text-center text-xs text-slate-400 py-2;
+}
+
+/* Edit Mode Styling */
+.message-edit-mode {
+  @apply space-y-2;
+}
+
+.message-edit-textarea {
+  @apply w-full resize-none rounded-lg border-0 bg-white/10 p-2 text-sm text-inherit outline-none ring-1 ring-white/30 placeholder:text-white/50;
+}
+
+.message-edit-actions {
+  @apply flex justify-end gap-2;
+}
+
+.message-edit-button {
+  @apply text-xs font-medium text-white/70 hover:text-white transition-colors;
+}
+
+.message-edit-save-button {
+  @apply text-xs font-bold text-white hover:text-white/90 transition-colors disabled:opacity-50;
+}
+
+/* Loading State */
+.message-loading {
+  @apply flex h-full items-center justify-center gap-2 text-sm text-slate-400;
+}
+
+/* Empty State */
+.message-empty-state {
+  @apply py-8 text-center text-sm text-slate-400;
+}
+
+.message-empty-icon {
+  @apply h-8 w-8 text-slate-300;
+}
+
+.message-empty-title {
+  @apply text-sm font-medium text-slate-600;
+}
+
+.message-empty-body {
+  @apply max-w-xs text-xs text-slate-400;
+}
+
+/* Hover Effects */
+.message-bubble:hover {
+  @apply shadow-lg;
+}
+
+.conversation-item:hover {
+  @apply translate-x-0.5;
+}
+
+/* Animation Classes */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
+  }
+}
+
+.message-bubble {
+  animation: slideUp 0.3s ease-out;
+}
+
+.message-bubble.highlighted {
+  animation: pulse-highlight 1.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .message-bubble {
+    @apply max-w-[90%];
+  }
+}
+
+@media (max-width: 640px) {
+  .message-bubble {
+    @apply max-w-[95%];
+  }
+
+  .thread-header {
+    @apply px-3 py-2;
+  }
+
+  .thread-messages-container {
+    @apply px-3 py-2;
+  }
+
+  .message-input-form {
+    @apply gap-2 p-2;
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  .message-bubble,
+  .conversation-item,
+  .notification-setting-item {
+    @apply transition-none;
+  }
+
+  .message-bubble {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: more) {
+  .message-bubble.mine {
+    @apply border-2 border-white/50;
+  }
+
+  .message-bubble.theirs {
+    @apply border-4 border-slate-900;
+  }
+
+  .conversation-item.active {
+    @apply border-l-8;
+  }
+}
+
+/* Dark Mode Support (if implemented in future) */
+@media (prefers-color-scheme: dark) {
+  /* Placeholder for dark mode styles */
+  /* .message-thread-container {
+    @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
+  } */
+}
+
+/* Print Styles */
+@media print {
+  .thread-header,
+  .message-input-form,
+  .notification-settings-panel {
+    @apply hidden;
+  }
+
+  .message-bubble {
+    @apply border-2 border-black page-break-inside-avoid;
+  }
+}
+
+/* Focus Styles for Accessibility */
+button:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  @apply outline-none ring-2 ring-blue-400 ring-offset-2;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Utility Classes for Enhanced Features */
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Performance Optimization - GPU Acceleration */
+.message-bubble,
+.notification-settings-panel {
+  will-change: transform;
+}
+
+/* Smooth Transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+button,
+input,
+textarea {
+  @apply transition-all duration-200;
+}
+
+/* Z-index Management */
+.notification-settings-panel {
+  z-index: 10;
+}
+
+.message-delete-confirm {
+  z-index: 20;
+}
+
+/* Consistent Border Radius */
+.rounded-3xl {
+  border-radius: 24px;
+}
+
+.rounded-2xl {
+  border-radius: 16px;
+}
+
+.rounded-lg {
+  border-radius: 8px;
+}
+
+/* Shadow Consistency */
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
