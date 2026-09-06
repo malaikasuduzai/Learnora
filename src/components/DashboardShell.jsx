@@ -7,7 +7,7 @@ import LogoutButton from "@/components/LogoutButton";
 import NotificationBell from "@/components/NotificationBell";
 import HeaderSearch from "@/components/HeaderSearch";
 import RolePageHeader from "@/components/RolePageHeader";
-import { BookOpenIcon, ChevronDownIcon, LinkIcon } from "@/components/icons";
+import { ChevronDownIcon, LinkIcon } from "@/components/icons";
 import { NAV_ITEMS, ROLE_META } from "@/lib/dashboardConfig";
 import SuperAdminOverview from "@/components/dashboard/SuperAdminOverview";
 import AdminOverview from "@/components/dashboard/AdminOverview";
@@ -30,16 +30,6 @@ const ROLE_HEADER_KEY = {
   ADMIN: "admin",
   TEACHER: "teacher",
   STUDENT: "student",
-};
-
-// Where "Explore Courses" sends each role — the student's public browse
-// screen for a Student, and each role's own course-management screen for
-// everyone else (there's no separate "browse" screen for those roles yet).
-const EXPLORE_COURSES_HREF = {
-  SUPER_ADMIN: "/super-admin/courses",
-  ADMIN: "/admin/courses",
-  TEACHER: "/teacher/courses",
-  STUDENT: "/student/courses/browse",
 };
 
 function initials(name) {
@@ -219,7 +209,7 @@ export default function DashboardShell({ user, children }) {
         </div>
       )}
 
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/90 backdrop-blur">
           <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
             <button
@@ -255,27 +245,10 @@ export default function DashboardShell({ user, children }) {
                     : meta.description
                 }
                 action={
-                  isSettings ? (
-                    <span className="badge bg-emerald-50 text-emerald-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      Active account
-                    </span>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="badge bg-emerald-50 text-emerald-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Active account
-                      </span>
-                      <Link
-                        href={EXPLORE_COURSES_HREF[user.role] ?? "/"}
-                        className="btn-brass w-auto px-4 py-2"
-                      >
-                        <BookOpenIcon className="h-4 w-4" />
-                        Explore Courses
-                      </Link>
-                      <LogoutButton />
-                    </div>
-                  )
+                  <span className="badge bg-emerald-50 text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active account
+                  </span>
                 }
               />
 
